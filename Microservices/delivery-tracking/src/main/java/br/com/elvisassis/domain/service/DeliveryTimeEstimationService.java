@@ -1,0 +1,1 @@
+package br.com.elvisassis.domain.service;import br.com.elvisassis.domain.model.ContactPoint;public interface DeliveryTimeEstimationService {  DeliveryEstimate estimate(ContactPoint sender, ContactPoint receiver);}

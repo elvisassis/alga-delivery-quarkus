@@ -1,0 +1,27 @@
+#greeting:
+#  message: "hello"
+#mp:
+#  messaging:
+#    outgoing:
+#      words-out:
+#        topic: "words"
+#    incoming:
+#      words-in:
+#        auto:
+#          offset:
+#            reset: "earliest"
+#        topic: "words"
+
+quarkus:
+  datasource:
+    db-kind: postgresql
+    devservices:
+      enabled: false
+    reactive:
+      url: postgresql://root:123@localhost:5434/quarkus
+  hibernate-orm:
+    database:
+      generation: drop-and-create
+
+
+
