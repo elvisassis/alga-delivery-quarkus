@@ -1,0 +1,1 @@
+package br.com.elvisassis.domain.repository;  public class PaginationHelper {}

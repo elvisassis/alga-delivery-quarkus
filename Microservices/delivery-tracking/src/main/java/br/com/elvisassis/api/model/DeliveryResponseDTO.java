@@ -1,0 +1,1 @@
+package br.com.elvisassis.api.model;  public class DeliveryResponseDTO {}
