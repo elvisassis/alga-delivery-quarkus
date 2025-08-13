@@ -1,17 +1,3 @@
-#greeting:
-#  message: "hello"
-#mp:
-#  messaging:
-#    outgoing:
-#      words-out:
-#        topic: "words"
-#    incoming:
-#      words-in:
-#        auto:
-#          offset:
-#            reset: "earliest"
-#        topic: "words"
-
 quarkus:
   datasource:
     db-kind: postgresql
@@ -23,5 +9,30 @@ quarkus:
     database:
       generation: drop-and-create
 
+kafka:
+  bootstrap:
+    servers: localhost:9092
+
+mp:
+  messaging:
+    outgoing:
+      delivery-events:
+        connector: smallrye-kafka
+        topic: deliveries.v1.events
+        value:
+          serializer: br.com.elvisassis.infrastructure.messaging.JsonObjectSerializer
+        key:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+
+topics:
+  - name: deliveries.v1.events
+    partitions: 3
+    replicas: 1
+  - name: entregas
+    partitions: 2
+    replicas: 1
+  - name: pagamentos
+    partitions: 3
+    replicas: 1
 
 

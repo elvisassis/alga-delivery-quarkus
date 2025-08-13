@@ -1,0 +1,1 @@
+package br.com.elvisassis.domain.events;import java.time.OffsetDateTime;import java.util.UUID;public record DeliveryPlacedEvent(OffsetDateTime placeAt, UUID deliveryId) {}
