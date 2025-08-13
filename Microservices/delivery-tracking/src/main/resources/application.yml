@@ -20,7 +20,7 @@ mp:
         connector: smallrye-kafka
         topic: deliveries.v1.events
         value:
-          serializer: br.com.elvisassis.infrastructure.messaging.JsonObjectSerializer
+          serializer: br.com.elvisassis.infrastructure.kafka.JsonObjectSerializer
         key:
           serializer: org.apache.kafka.common.serialization.StringSerializer
 
