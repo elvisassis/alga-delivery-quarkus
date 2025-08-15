@@ -1,0 +1,1 @@
+package br.com.elvisassis.api.model;import jakarta.persistence.ManyToOne;import lombok.*;import java.time.OffsetDateTime;import java.util.UUID;@Getter@Setter@NoArgsConstructorpublic class AssignedDeliveryDTO {    private UUID id;    private OffsetDateTime assignedAt;;    private CourierDTO courier;}

@@ -1,0 +1,1 @@
+package br.com.elvisassis.api.model;import jakarta.enterprise.context.ApplicationScoped;import lombok.Getter;@Getter@ApplicationScopedpublic class CourierPayoutCalculateInput {    private Double distanceInKm;}

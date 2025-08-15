@@ -1,0 +1,12 @@
+quarkus:
+  http:
+    port: 8081
+  datasource:
+    db-kind: postgresql
+    devservices:
+      enabled: false
+    reactive:
+      url: postgresql://root:123@localhost:5434/quarkus
+  hibernate-orm:
+    database:
+      generation: drop-and-create
