@@ -1,0 +1,1 @@
+package br.com.elvisassis.domain.exception;public class IntegrationCourierException extends RuntimeException {    public IntegrationCourierException() {}    public IntegrationCourierException(String message) {        super(message);    }    public IntegrationCourierException(String message, Throwable cause) {        super(message, cause);    }}

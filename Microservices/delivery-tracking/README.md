@@ -1,93 +1,137 @@
-# delivery-tracking
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+# 📦 Delivery Tracking — Migração para Quarkus
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## ✅ Funcionalidades Implementadas
 
-## Running the application in dev mode
+- Criação de rascunho de uma encomenda (`DRAFT`).
+- Busca de encomenda pelo ID.
+- Listagem de todas as encomendas de forma paginada.
+- Edição dos detalhes de uma encomenda.
+- Exclusão de uma encomenda.
+- Submissão de uma encomenda para processamento → status `WAITING_FOR_COURIER`.
+- Registro da retirada de uma encomenda pelo entregador → status `IN_TRANSIT`.
+- Registro da conclusão de uma encomenda → status `DELIVERED`.
 
-You can run your application in dev mode that enables live coding using:
+---
 
-```shell script
+## ⚡ Integração com Kafka
+
+- Dependência adicionada no `pom.xml`:
+```xml
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-messaging-kafka</artifactId>
+</dependency>
+```
+
+- Configuração no `application.yaml`:
+```yaml
+mp:
+  messaging:
+    outgoing:
+      delivery-events:
+        connector: smallrye-kafka
+        topic: deliveries.v1.events
+        value:
+          serializer: br.com.elvisassis.infrastructure.kafka.JsonObjectSerializer
+        key:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+```
+
+- **Publisher** — Classe `DeliveryEventPublisher`:
+```java
+@ApplicationScoped
+public class DeliveryEventPublisher {
+
+    @Channel("delivery-events")
+    Emitter<Object> emitter;
+
+    public void onDeliveryPlaced(@Observes DeliveryPlacedEvent event) {
+        emitter.send(event);
+    }
+
+    public void onDeliveryPickUp(@Observes DeliveryPickUpEvent event) {
+        emitter.send(event);
+    }
+
+    public void onDeliveryFulfilled(@Observes DeliveryFulfilledEvent event) {
+        emitter.send(event);
+    }
+}
+```
+
+- **Eventos disparados nas seguintes condições**:
+  - Ao submeter uma encomenda para processamento → `WAITING_FOR_COURIER`.
+  - Ao registrar retirada de uma encomenda → `IN_TRANSIT`.
+  - Ao registrar conclusão de uma encomenda → `DELIVERED`.
+
+- **Criação automática de tópico** (`KafkaTopicCreator.java`) para perfis `dev` e `test`.
+
+---
+
+## 🛠 Infraestrutura
+
+- **Banco de dados**: Integração com **PostgreSQL**.
+- **Mensageria**: Integração com **Kafka**.
+- **Docker Compose** para subir **Kafka** e **PostgreSQL** localmente.
+
+---
+
+## 🚀 Instruções de Execução
+
+1. **Pré-requisitos**
+   - Java 21+
+   - Maven 3.9+
+   - Docker e Docker Compose
+
+3. **Subir infraestrutura com Docker Compose**
+```bash
+docker compose up -d
+```
+Isso iniciará:
+- **PostgreSQL** na porta `5434` (configurado no `application.yaml`)
+- **Kafka** com tópicos configurados para `dev` e `test`
+
+4. **Rodar a aplicação em modo dev**
+```bash
 ./mvnw quarkus:dev
 ```
-
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
-
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./mvnw package
+A aplicação ficará disponível em:
+```
+http://localhost:8080
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+5. **Testar endpoints**
+- A API está documentada no **Swagger/OpenAPI** disponível em:
+```
+http://localhost:8080/q/swagger-ui
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+---
 
-## Creating a native executable
+## 🔄 Fluxo de Eventos
 
-You can create a native executable using:
+```mermaid
+sequenceDiagram
+    participant API as API REST (Quarkus)
+    participant Service as DeliveryService
+    participant Kafka as Kafka Broker
+    participant Consumer as Consumidor de Eventos
 
-```shell script
-./mvnw package -Dnative
+    API->>Service: POST /deliveries (nova entrega)
+    Service->>Kafka: Publica evento DeliveryPlacedEvent
+    Kafka->>Consumer: Entrega evento
+    Consumer-->>Kafka: Processa e confirma
+    API->>Service: PATCH /deliveries/{id}/pickup
+    Service->>Kafka: Publica evento DeliveryPickUpEvent
+    Kafka->>Consumer: Entrega evento
+    API->>Service: PATCH /deliveries/{id}/fulfill
+    Service->>Kafka: Publica evento DeliveryFulfilledEvent
+    Kafka->>Consumer: Entrega evento
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+---
 
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
+## 🚧 Pendências
 
-You can then execute your native executable with: `./target/delivery-tracking-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- REST resources for Hibernate ORM with Panache ([guide](https://quarkus.io/guides/rest-data-panache)): Generate Jakarta REST resources for your Hibernate Panache entities and repositories
-- REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and Vert.x. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
-- Messaging - Kafka Connector ([guide](https://quarkus.io/guides/kafka-getting-started)): Connect to Kafka with Reactive Messaging
-- SmallRye Fault Tolerance ([guide](https://quarkus.io/guides/smallrye-fault-tolerance)): Build fault-tolerant network services
-- YAML Configuration ([guide](https://quarkus.io/guides/config-yaml)): Use YAML to configure your Quarkus application
-- JDBC Driver - PostgreSQL ([guide](https://quarkus.io/guides/datasource)): Connect to the PostgreSQL database via JDBC
-
-## Provided Code
-
-### YAML Config
-
-Configure your application with YAML
-
-[Related guide section...](https://quarkus.io/guides/config-reference#configuration-examples)
-
-The Quarkus application configuration is located in `src/main/resources/application.yml`.
-
-### REST Data with Panache
-
-Generating Jakarta REST resources with Panache
-
-[Related guide section...](https://quarkus.io/guides/rest-data-panache)
-
-
-### Messaging codestart
-
-Use Quarkus Messaging
-
-[Related Apache Kafka guide section...](https://quarkus.io/guides/kafka-reactive-getting-started)
-
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+- Integração com o serviço **Courier** para cálculo do frete.

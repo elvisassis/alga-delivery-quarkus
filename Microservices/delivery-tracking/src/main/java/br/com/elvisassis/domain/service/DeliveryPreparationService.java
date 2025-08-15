@@ -31,8 +31,9 @@ public class DeliveryPreparationService {
     @WithTransaction
     public Uni<DeliveryResponseDTO> draft(DeliveryInput input) {
         Delivery delivery = Delivery.draft();
-        handlePreparation(input, delivery);
-        return deliveryRepository.persist(delivery).replaceWith(delivery)
+        // A chamada para handlePreparation agora é encadeada com flatMap
+        return handlePreparation(input, delivery)
+                .flatMap(d -> deliveryRepository.saveAndFlush(d).replaceWith(d))
                 .map(DeliveryMapper::toResponseDTO);
     }
 
@@ -40,31 +41,33 @@ public class DeliveryPreparationService {
     public Uni<DeliveryResponseDTO> edit(UUID deliveryId, DeliveryInput input) {
         return deliveryRepository.findById(deliveryId)
                 .onItem().ifNull().failWith(DomainException::new)
-                .onItem().invoke(delivery -> {
-                    delivery.removeItems();
-                    handlePreparation(input, delivery);
-                    delivery.place();
-                })
+                .onItem().invoke(delivery -> delivery.removeItems())
+                .flatMap(delivery -> handlePreparation(input, delivery))
+                .onItem().invoke(Delivery::place)
                 .map(DeliveryMapper::toResponseDTO);
     }
 
-    private void handlePreparation(DeliveryInput input, Delivery delivery) {
+    private Uni<Delivery> handlePreparation(DeliveryInput input, Delivery delivery) {
         ContactPoint sender = toContactPoint(input.getSender());
         ContactPoint recipient = toContactPoint(input.getRecipient());
 
         DeliveryEstimate estimate = deliveryTimeEstimationService.estimate(sender, recipient);
-        BigDecimal courierPayout = calculationPayout.calculatePayout(estimate.getDistanceInKm());
 
-        var preparationDetails = new Delivery.PreparationDetails(
-                sender,
-                recipient,
-                estimate.getEstimatedTime(),
-                BigDecimal.valueOf(estimate.getDistanceInKm()),
-                courierPayout
-        );
-        delivery.editPreparationDetails(preparationDetails);
+        // A chamada ao serviço de cálculo agora retorna um Uni<BigDecimal>
+        return calculationPayout.calculatePayout(estimate.getDistanceInKm())
+                .onItem().invoke(courierPayout -> {
+                    var preparationDetails = new Delivery.PreparationDetails(
+                            sender,
+                            recipient,
+                            estimate.getEstimatedTime(),
+                            BigDecimal.valueOf(estimate.getDistanceInKm()),
+                            courierPayout
+                    );
+                    delivery.editPreparationDetails(preparationDetails);
 
-        input.getItems().forEach(itemInput -> delivery.addItem(itemInput.getName(), itemInput.getQuantity()));
+                    input.getItems().forEach(itemInput -> delivery.addItem(itemInput.getName(), itemInput.getQuantity()));
+                })
+                .replaceWith(delivery);
     }
 
     private ContactPoint toContactPoint(ContactPointInput input) {

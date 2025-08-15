@@ -1,2 +1,10 @@
 topics:
   auto-create: true
+
+
+quarkus:
+  rest-client:
+    user-api:
+      url: http://localhost:8081
+    logging:
+      enabled: true

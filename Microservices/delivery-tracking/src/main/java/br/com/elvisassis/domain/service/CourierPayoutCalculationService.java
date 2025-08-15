@@ -1,1 +1,1 @@
-package br.com.elvisassis.domain.service;import java.math.BigDecimal;public interface CourierPayoutCalculationService {  BigDecimal calculatePayout(Double distanceInKm);}
+package br.com.elvisassis.domain.service;import io.smallrye.mutiny.Uni;import jakarta.enterprise.context.ApplicationScoped;import java.math.BigDecimal;@ApplicationScopedpublic interface CourierPayoutCalculationService {  Uni<BigDecimal> calculatePayout(Double distanceInKm);}
