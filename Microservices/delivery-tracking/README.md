@@ -1,137 +1,125 @@
+# Delivery Service (Quarkus)
 
-# 📦 Delivery Tracking — Migração para Quarkus
+## Visão Geral
+O **Delivery Service** é responsável por gerenciar o ciclo de vida de encomendas dentro da plataforma.  
+Ele implementa endpoints REST, integra com PostgreSQL para persistência e utiliza **Kafka** como barramento de eventos para comunicação assíncrona com o **Courier Service**.
 
-## ✅ Funcionalidades Implementadas
+## Funcionalidades Implementadas
+- **Criação de Rascunho** de uma encomenda.
+- **Buscar encomenda** por ID.
+- **Listagem paginada** de encomendas.
+- **Edição** dos detalhes de uma encomenda.
+- **Remoção** de uma encomenda.
+- **Submeter uma encomenda** para processamento (`WAITING_FOR_COURIER`).
+- **Registrar retirada** de uma encomenda pelo entregador (`IN_TRANSIT`).
+- **Registrar conclusão** da entrega (`DELIVERED`).
 
-- Criação de rascunho de uma encomenda (`DRAFT`).
-- Busca de encomenda pelo ID.
-- Listagem de todas as encomendas de forma paginada.
-- Edição dos detalhes de uma encomenda.
-- Exclusão de uma encomenda.
-- Submissão de uma encomenda para processamento → status `WAITING_FOR_COURIER`.
-- Registro da retirada de uma encomenda pelo entregador → status `IN_TRANSIT`.
-- Registro da conclusão de uma encomenda → status `DELIVERED`.
+## Integração com Kafka
+O Delivery atua como **Producer** de eventos relacionados ao ciclo de vida da entrega.
 
----
-
-## ⚡ Integração com Kafka
-
-- Dependência adicionada no `pom.xml`:
-```xml
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-messaging-kafka</artifactId>
-</dependency>
-```
-
-- Configuração no `application.yaml`:
+### Configuração no `application.yaml`
 ```yaml
 mp:
   messaging:
     outgoing:
-      delivery-events:
+      delivery-placed-events:
         connector: smallrye-kafka
-        topic: deliveries.v1.events
-        value:
-          serializer: br.com.elvisassis.infrastructure.kafka.JsonObjectSerializer
-        key:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        topic: delivery-placed-events
+        value.serializer: br.com.elvisassis.infrastructure.kafka.JsonObjectSerializer
+        key.serializer: org.apache.kafka.common.serialization.StringSerializer
+
+      delivery-pick-up-events:
+        connector: smallrye-kafka
+        topic: delivery-pick-up-events
+        value.serializer: br.com.elvisassis.infrastructure.kafka.JsonObjectSerializer
+        key.serializer: org.apache.kafka.common.serialization.StringSerializer
+
+      delivery-fulfilled-events:
+        connector: smallrye-kafka
+        topic: delivery-fulfilled-events
+        value.serializer: br.com.elvisassis.infrastructure.kafka.JsonObjectSerializer
+        key.serializer: org.apache.kafka.common.serialization.StringSerializer
 ```
 
-- **Publisher** — Classe `DeliveryEventPublisher`:
+### Publicação de Eventos
+Os eventos são enviados em momentos específicos do fluxo:
+
+- **delivery-placed-events** → quando uma encomenda é submetida para processamento (`WAITING_FOR_COURIER`).
+- **delivery-pick-up-events** → quando a encomenda é retirada pelo entregador (`IN_TRANSIT`).
+- **delivery-fulfilled-events** → quando a encomenda é concluída (`DELIVERED`).
+
+### Classe Publisher (exemplo)
 ```java
 @ApplicationScoped
 public class DeliveryEventPublisher {
 
-    @Channel("delivery-events")
-    Emitter<Object> emitter;
+    @Channel("delivery-placed-events")
+    Emitter<Object> placedEmitter;
+
+    @Channel("delivery-pick-up-events")
+    Emitter<Object> pickUpEmitter;
+
+    @Channel("delivery-fulfilled-events")
+    Emitter<Object> fulfilledEmitter;
 
     public void onDeliveryPlaced(@Observes DeliveryPlacedEvent event) {
-        emitter.send(event);
+        placedEmitter.send(event);
     }
 
     public void onDeliveryPickUp(@Observes DeliveryPickUpEvent event) {
-        emitter.send(event);
+        pickUpEmitter.send(event);
     }
 
     public void onDeliveryFulfilled(@Observes DeliveryFulfilledEvent event) {
-        emitter.send(event);
+        fulfilledEmitter.send(event);
     }
 }
 ```
 
-- **Eventos disparados nas seguintes condições**:
-  - Ao submeter uma encomenda para processamento → `WAITING_FOR_COURIER`.
-  - Ao registrar retirada de uma encomenda → `IN_TRANSIT`.
-  - Ao registrar conclusão de uma encomenda → `DELIVERED`.
+## Integração com PostgreSQL
+- Persistência configurada via **Panache ORM** (Quarkus Hibernate Reactive com Postgres).
+- Scripts de criação de tabelas aplicados via `import.sql` ou `Flyway`.
 
-- **Criação automática de tópico** (`KafkaTopicCreator.java`) para perfis `dev` e `test`.
+## Docker Compose (infraestrutura local)
+O projeto conta com um `docker-compose.yml` que provisiona:
+- **PostgreSQL**
+- **Apache Kafka + Zookeeper**
 
----
-
-## 🛠 Infraestrutura
-
-- **Banco de dados**: Integração com **PostgreSQL**.
-- **Mensageria**: Integração com **Kafka**.
-- **Docker Compose** para subir **Kafka** e **PostgreSQL** localmente.
-
----
-
-## 🚀 Instruções de Execução
-
-1. **Pré-requisitos**
-   - Java 21+
-   - Maven 3.9+
-   - Docker e Docker Compose
-
-3. **Subir infraestrutura com Docker Compose**
-```bash
-docker compose up -d
-```
-Isso iniciará:
-- **PostgreSQL** na porta `5434` (configurado no `application.yaml`)
-- **Kafka** com tópicos configurados para `dev` e `test`
-
-4. **Rodar a aplicação em modo dev**
-```bash
-./mvnw quarkus:dev
-```
-A aplicação ficará disponível em:
-```
-http://localhost:8080
-```
-
-5. **Testar endpoints**
-- A API está documentada no **Swagger/OpenAPI** disponível em:
-```
-http://localhost:8080/q/swagger-ui
-```
-
----
-
-## 🔄 Fluxo de Eventos
-
+## Fluxo de Eventos
 ```mermaid
 sequenceDiagram
-    participant API as API REST (Quarkus)
-    participant Service as DeliveryService
+    participant API as API (Delivery Service)
+    participant Delivery as Delivery Service
     participant Kafka as Kafka Broker
-    participant Consumer as Consumidor de Eventos
+    participant Courier as Courier Service
 
-    API->>Service: POST /deliveries (nova entrega)
-    Service->>Kafka: Publica evento DeliveryPlacedEvent
-    Kafka->>Consumer: Entrega evento
-    Consumer-->>Kafka: Processa e confirma
-    API->>Service: PATCH /deliveries/{id}/pickup
-    Service->>Kafka: Publica evento DeliveryPickUpEvent
-    Kafka->>Consumer: Entrega evento
-    API->>Service: PATCH /deliveries/{id}/fulfill
-    Service->>Kafka: Publica evento DeliveryFulfilledEvent
-    Kafka->>Consumer: Entrega evento
+    API->>Delivery: Submete encomenda (POST /deliveries/{id}/submit)
+    Delivery->>Kafka: Publica DeliveryPlacedEvent (delivery-placed-events)
+    Kafka->>Courier: Entrega evento para consumo
+
+    API->>Delivery: Registra retirada (POST /deliveries/{id}/pickup)
+    Delivery->>Kafka: Publica DeliveryPickUpEvent (delivery-pick-up-events)
+
+    API->>Delivery: Conclui entrega (POST /deliveries/{id}/fulfill)
+    Delivery->>Kafka: Publica DeliveryFulfilledEvent (delivery-fulfilled-events)
 ```
 
----
+## Instruções de Execução
+### Pré-requisitos
+- **Java 21+**
+- **Maven 3.9+**
+- **Docker e Docker Compose**
 
-## 🚧 Pendências
-
-- Integração com o serviço **Courier** para cálculo do frete.
+### Passos
+1. Subir infraestrutura local:
+   ```sh
+   docker compose up -d
+   ```
+2. Rodar o serviço Delivery em modo dev:
+   ```sh
+   ./mvnw quarkus:dev
+   ```
+3. Acessar a documentação da API no Swagger UI:
+   ```
+   http://localhost:8080/q/swagger-ui
+   ```
