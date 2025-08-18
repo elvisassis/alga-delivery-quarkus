@@ -18,21 +18,10 @@ mp:
     outgoing:
       delivery-events:
         connector: smallrye-kafka
-        topic: deliveries.v1.events
+        topic: deliveries-events
         value:
           serializer: br.com.elvisassis.infrastructure.kafka.JsonObjectSerializer
         key:
           serializer: org.apache.kafka.common.serialization.StringSerializer
-
-topics:
-  - name: deliveries.v1.events
-    partitions: 3
-    replicas: 1
-  - name: entregas
-    partitions: 2
-    replicas: 1
-  - name: pagamentos
-    partitions: 3
-    replicas: 1
 
 

@@ -1,0 +1,1 @@
+package br.com.elvisassis.infrastructure.event;import lombok.Data;import lombok.NoArgsConstructor;import java.time.OffsetDateTime;import java.util.UUID;@Data@NoArgsConstructorpublic class DeliveryPlacedIntegrationEvent {    private OffsetDateTime placeAt;    private UUID deliveryId;    DeliveryTypeEventsEnum type;}

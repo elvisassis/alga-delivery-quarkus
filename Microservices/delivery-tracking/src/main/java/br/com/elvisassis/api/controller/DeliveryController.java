@@ -15,11 +15,13 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.reactive.RestResponse;
 
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Path("/api/v1/deliveries")
 @ApplicationScoped
 public class DeliveryController {

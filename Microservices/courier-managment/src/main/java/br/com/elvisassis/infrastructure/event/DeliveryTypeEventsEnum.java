@@ -1,0 +1,1 @@
+package br.com.elvisassis.infrastructure.event;import lombok.AllArgsConstructor;import lombok.Getter;@Getter@AllArgsConstructorpublic enum DeliveryTypeEventsEnum {    DELIVERY_PLACED_EVENT("delivery-placed-event"),    DELIVERY_PICKUP_EVENT("delivery-picked-up-event"),    DELIVERY_FULFILLED_EVENT("delivery-fulfilled-event");    private final String value;}

@@ -1,1 +1,1 @@
-package br.com.elvisassis.domain.events;import java.time.OffsetDateTime;import java.util.UUID;public record DeliveryFulfilledEvent(OffsetDateTime fulfilledAt, UUID deliveryId) {}
+package br.com.elvisassis.domain.events;import java.time.OffsetDateTime;import java.util.UUID;public record DeliveryFulfilledEvent(OffsetDateTime fulfilledAt, DeliveryTypeEventsEnum type, UUID deliveryId) {}

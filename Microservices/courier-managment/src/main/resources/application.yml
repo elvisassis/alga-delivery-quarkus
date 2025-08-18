@@ -10,3 +10,37 @@ quarkus:
   hibernate-orm:
     database:
       generation: drop-and-create
+
+kafka:
+  bootstrap:
+    servers: localhost:9092
+  auto:
+    create:
+      topics: false
+
+mp:
+  messaging:
+    incoming:
+      delivery-placed-events:
+        connector: smallrye-kafka
+        topic: delivery-placed-events
+        group:
+          id: courier-management
+        value:
+          deserializer: br.com.elvisassis.infrastructure.kafka.DeliveryPlacedDeserializer
+
+      delivery-pick-up-events:
+        connector: smallrye-kafka
+        topic: delivery-pick-up-events
+        group:
+          id: courier-management
+        value:
+          deserializer: br.com.elvisassis.infrastructure.kafka.DeliveryPickUpDeserializer
+
+      delivery-fulfilled-events:
+        connector: smallrye-kafka
+        topic: delivery-fulfilled-events
+        group:
+          id: courier-management
+        value:
+          deserializer: br.com.elvisassis.infrastructure.kafka.DeliveryFulfilledDeserializer
