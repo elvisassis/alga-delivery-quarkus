@@ -2,16 +2,16 @@
 
 ## 📖 Descrição
 O **Courier Service** é responsável por receber solicitações de cálculo de frete a partir dos eventos publicados pelo **Delivery Service** e retornar o resultado via Kafka.  
-Ele implementa o papel de **Consumer** para os eventos do Delivery e de **Producer** para eventos de resposta.
+Ele implementa o papel de **Consumer** para os eventos do Delivery.
 
 ---
 
 ## ✅ Funcionalidades Implementadas
 
 - Consome eventos do **Delivery Service** via Kafka:
-    - `DELIVERY_PLACED_EVENT`
-    - `DELIVERY_PICKUP_EVENT`
-    - `DELIVERY_FULFILLED_EVENT`
+  - `DELIVERY_PLACED_EVENT`
+  - `DELIVERY_PICKUP_EVENT`
+  - `DELIVERY_FULFILLED_EVENT`
 - Calcula o **valor do frete** e tempo estimado de entrega.
 - Integração com **PostgreSQL** para persistência de dados.
 - Criação automática de tópicos Kafka (um por canal) nos perfis `dev` e `test`.
@@ -97,6 +97,6 @@ mp:
 ## 📦 Tópicos Kafka
 
 - Entrada (Delivery → Courier)
-    - `delivery-placed-events`
-    - `delivery-pick-up-events`
-    - `delivery-fulfilled-events`  
+  - `delivery-placed-events`
+  - `delivery-pick-up-events`
+  - `delivery-fulfilled-events`  
